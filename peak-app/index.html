@@ -73,11 +73,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, [tabindex]:fo
   z-index:20;
 }
 .brand{ display:flex; align-items:center; gap:10px; }
-.brand-mark{
-  width:26px; height:26px;
-  background:linear-gradient(155deg, var(--gold), var(--ember));
-  clip-path: polygon(50% 0%, 100% 100%, 0% 100%);
-}
+.brand-mark{ width:34px; height:20px; display:flex; align-items:center; }
+.brand-mark img{ width:100%; height:100%; }
 .brand-name{ font-family:var(--font-display); font-weight:700; font-size:18px; letter-spacing:0.5px; }
 .streak-chip{
   display:flex; align-items:center; gap:6px;
@@ -110,14 +107,17 @@ nav.bottomnav{
   z-index:30;
   justify-content:space-around;
 }
-.bottomnav .nav-item{ flex-direction:column; gap:3px; font-size:10.5px; padding:6px 4px; width:auto; text-align:center; }
-.bottomnav .nav-item .ico{ font-size:18px; }
+.bottomnav .nav-item{ flex:1; min-width:0; flex-direction:column; gap:3px; font-size:10px; padding:6px 2px; text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.bottomnav .nav-item .ico{ font-size:17px; }
 
 @media (max-width: 860px){
   nav.sidenav{ display:none; }
   nav.bottomnav{ display:flex; }
   main.view{ padding:20px 16px 96px; }
-  .topbar{ padding:14px 18px; }
+  .topbar{ padding:12px 14px; }
+  .brand-name{ font-size:16px; }
+  .streak-chip{ padding:5px 9px; font-size:12px; gap:4px; }
+  #logoutBtn{ width:28px; height:28px; font-size:14px; }
 }
 
 /* ============ SHARED UI ============ */
@@ -156,6 +156,17 @@ nav.bottomnav{
 }
 .field textarea{ min-height:70px; resize:vertical; }
 .modal-actions{ display:flex; gap:10px; margin-top:18px; justify-content:flex-end; }
+
+/* ============ AUTH ============ */
+#authScreen{
+  position:fixed; inset:0; z-index:300;
+  background:
+    radial-gradient(circle at 50% 115%, rgba(232,169,76,0.25), transparent 55%),
+    linear-gradient(180deg, #0a0a0c 0%, #121012 100%);
+  align-items:center; justify-content:center; padding:24px;
+}
+.auth-box{ width:100%; max-width:360px; }
+.auth-box .field input{ width:100%; }
 
 /* ============ QUOTE SCREEN ============ */
 #quoteScreen{
@@ -231,12 +242,6 @@ nav.bottomnav{
 .note-card .preview{ font-size:13px; color:var(--text-dim); line-height:1.5; max-height:3em; overflow:hidden; }
 .note-card .meta{ display:flex; gap:8px; margin-top:10px; align-items:center; }
 
-/* ============ PIZARRA ============ */
-.board-toolbar{ display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
-.color-dot{ width:24px; height:24px; border-radius:50%; border:2px solid transparent; cursor:pointer; }
-.color-dot.active{ border-color:#fff; }
-#boardCanvas{ width:100%; height:60vh; background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); touch-action:none; display:block; }
-
 /* ============ FINANZAS ============ */
 .fin-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 @media (max-width:560px){ .fin-grid{ grid-template-columns:1fr; } }
@@ -270,8 +275,28 @@ nav.bottomnav{
 .mini-btn{ width:30px; height:30px; border-radius:8px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; font-size:13px; color:var(--text-dim); }
 .mini-btn:hover{ color:var(--text); }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
+
+<div id="authScreen" style="display:flex;">
+  <div class="auth-box">
+    <div class="brand" style="justify-content:center; margin-bottom:26px;">
+      <div class="brand-mark"><img src="./logo-mark.png" alt="PEAK" style="width:100%; height:100%; object-fit:contain;"></div>
+      <div class="brand-name" style="font-size:22px;">PEAK</div>
+    </div>
+    <div class="h2" id="authTitle" style="text-align:center; margin-bottom:6px;">Iniciar sesión</div>
+    <div class="faint" style="text-align:center; margin-bottom:22px;">Tus datos sincronizados en todos tus dispositivos</div>
+    <div class="field"><label>Correo</label><input type="email" id="authEmail" placeholder="tucorreo@ejemplo.com"></div>
+    <div class="field"><label>Contraseña</label><input type="password" id="authPassword" placeholder="••••••••"></div>
+    <div class="faint" id="authError" style="color:var(--danger); min-height:16px; margin-bottom:8px;"></div>
+    <button class="btn" id="authSubmit" style="width:100%; justify-content:center; margin-top:8px;">Entrar</button>
+    <div class="faint" style="text-align:center; margin-top:18px;">
+      <span id="authToggleText">¿No tienes cuenta?</span>
+      <a href="#" id="authToggle" style="color:var(--gold); font-weight:600;">Crear cuenta</a>
+    </div>
+  </div>
+</div>
 
 <div id="quoteScreen" style="display:none;">
   <svg class="peak-silhouette" viewBox="0 0 800 200" preserveAspectRatio="none" width="100%" height="180">
@@ -285,10 +310,13 @@ nav.bottomnav{
 <div id="app" style="display:none;">
   <div class="topbar">
     <div class="brand">
-      <div class="brand-mark"></div>
+      <div class="brand-mark"><img src="./logo-mark.png" alt="PEAK" style="width:100%; height:100%; object-fit:contain;"></div>
       <div class="brand-name">PEAK</div>
     </div>
-    <div class="streak-chip">🔥 <span id="streakChip">0</span> días</div>
+    <div style="display:flex; align-items:center; gap:10px;">
+      <div class="streak-chip">🔥 <span id="streakChip">0</span> días</div>
+      <button class="icon-btn" id="logoutBtn" title="Cerrar sesión" style="border:1px solid var(--border); border-radius:8px;">⏻</button>
+    </div>
   </div>
 
   <div class="layout">
@@ -311,7 +339,6 @@ const NAV_ITEMS = [
   {id:'progreso', label:'Progreso', ico:'▲'},
   {id:'calendario', label:'Calendario', ico:'▦'},
   {id:'notas', label:'Notas', ico:'✎'},
-  {id:'pizarra', label:'Pizarra', ico:'◫'},
   {id:'finanzas', label:'Finanzas', ico:'$'},
 ];
 
@@ -341,6 +368,22 @@ const QUOTES = [
   {t:"Un objetivo sin un plan es solo un deseo.", a:"Antoine de Saint-Exupéry"},
   {t:"Haz que cada día cuente, porque nunca sabes cuándo se convertirá en tu último.", a:"Anónimo"},
   {t:"La paciencia y la constancia siempre vencen a la fuerza bruta.", a:"Anónimo"},
+  {t:"No dejes que lo que no puedes hacer interfiera con lo que sí puedes hacer.", a:"John Wooden"},
+  {t:"El único modo de hacer un gran trabajo es amar lo que haces.", a:"Steve Jobs"},
+  {t:"La suerte favorece a la mente preparada.", a:"Louis Pasteur"},
+  {t:"Corre tu propia carrera, a tu propio ritmo.", a:"Anónimo"},
+  {t:"El dinero sigue al valor que entregas, no al revés.", a:"Naval Ravikant"},
+  {t:"La visión sin ejecución es solo una alucinación.", a:"Thomas Edison"},
+  {t:"Empieza donde estás, usa lo que tienes, haz lo que puedas.", a:"Arthur Ashe"},
+  {t:"Nadie construyó un imperio esperando el momento perfecto.", a:"Anónimo"},
+  {t:"Cuanto más trabajo, más suerte tengo.", a:"Thomas Jefferson"},
+  {t:"Los hábitos pequeños no suman, se multiplican.", a:"James Clear"},
+  {t:"Si no estás dispuesto a arriesgarte, prepárate para una vida ordinaria.", a:"Jim Rohn"},
+  {t:"El fracaso solo es el fin si dejas de intentarlo.", a:"Anónimo"},
+  {t:"No te compares con otros, compárate con quien eras ayer.", a:"Jordan Peterson"},
+  {t:"Haz lo difícil cuando es fácil, antes de que se vuelva difícil.", a:"Lao Tzu"},
+  {t:"El único límite a tu impacto es tu imaginación y compromiso.", a:"Tony Robbins"},
+  {t:"El dinero es una herramienta, la disciplina es el motor.", a:"Anónimo"},
 ];
 
 const SKILLS = [
@@ -433,7 +476,7 @@ const SKILLS = [
     project:'Dibujar un embudo de venta completo.',
     flow:['Aprender','Analizar','Practicar','Crear','Publicar','Analizar resultados'],
     pool:[
-      {n:'Dibujar el mapa del embudo en la pizarra', m:25},
+      {n:'Dibujar el mapa del embudo en papel o digital', m:25},
       {n:'Definir el lead magnet', m:20},
       {n:'Analizar un embudo de un referente', m:20},
       {n:'Escribir la secuencia de seguimiento', m:20},
@@ -487,12 +530,11 @@ const STORAGE = {
   notes: 'peak:notes',
   calendar: 'peak:calendar',
   finance: 'peak:finance',
-  board: 'peak:board',
   inbox: 'peak:inbox',
 };
 
 let state = {
-  core: { goal:'Construir una empresa digital.', currentSkillId:'storytelling', streak:0, lastCompletedDate:null, weekDone:{}, lastQuoteDate:null },
+  core: { goal:'Construir una empresa digital.', currentSkillId:'storytelling', streak:0, lastCompletedDate:null, weekDone:{}, lastQuoteDate:null, lastQuoteIndex:null },
   skills: {},
   training: null,
   english: null,
@@ -516,14 +558,28 @@ function fmtMoney(n){
 }
 function uid(){ return Math.random().toString(36).slice(2,10); }
 
+/* ---------------- Supabase (sincronización entre dispositivos) ---------------- */
+const SUPABASE_URL = 'https://mqawqnftjqzpbqvdwzah.supabase.co';
+const SUPABASE_ANON_KEY = 'sb_publishable_aWPGTQi1yeGi2n9otpiuPw_QwLdXSq5';
+const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUser = null;
+
 async function saveKey(key, value){
-  try{ localStorage.setItem(key, JSON.stringify(value)); }
-  catch(e){ console.error('storage set failed', key, e); }
+  try{
+    if(!currentUser) return;
+    await sb.from('peak_data').upsert(
+      { user_id: currentUser.id, key, value, updated_at: new Date().toISOString() },
+      { onConflict: 'user_id,key' }
+    );
+  }catch(e){ console.error('storage set failed', key, e); }
 }
 async function loadKey(key, fallback){
   try{
-    const raw = localStorage.getItem(key);
-    return raw !== null ? JSON.parse(raw) : fallback;
+    if(!currentUser) return fallback;
+    const { data, error } = await sb.from('peak_data').select('value').eq('user_id', currentUser.id).eq('key', key).maybeSingle();
+    if(error || !data) return fallback;
+    return data.value;
   }catch(e){ return fallback; }
 }
 
@@ -691,7 +747,7 @@ function renderNav(){
 function renderView(){
   const view = document.getElementById('view');
   view.innerHTML = '';
-  const renderers = { inicio:renderInicio, ruta:renderRuta, progreso:renderProgreso, calendario:renderCalendario, notas:renderNotas, pizarra:renderPizarra, finanzas:renderFinanzas };
+  const renderers = { inicio:renderInicio, ruta:renderRuta, progreso:renderProgreso, calendario:renderCalendario, notas:renderNotas, finanzas:renderFinanzas };
   (renderers[currentTab] || renderInicio)(view);
 }
 
@@ -702,8 +758,44 @@ function renderInicio(view){
   const skill = currentSkill();
   const skillState = state.skills[skill.id];
   const allDone = checkAllDone();
+  const engDone = checkEnglishAllDone();
 
   const wrap = document.createElement('div');
+
+  const trainDoneCount = state.training.activities.filter(a=>a.done).length;
+  const trainTotal = state.training.activities.length;
+  const engDoneCount = state.english.steps.filter(s=>s.done).length;
+  const engTotal = state.english.steps.length;
+  const totalItems = trainTotal + engTotal;
+  const totalDone = trainDoneCount + engDoneCount;
+  const pct = totalItems ? Math.round((totalDone/totalItems)*100) : 0;
+  const todayEventsCount = state.calendar.filter(e=>e.date===todayStr()).length;
+
+  const r = 30, circ = 2*Math.PI*r;
+  const offset = circ - (pct/100)*circ;
+
+  const summaryHtml = `
+    <div class="card" style="margin-bottom:22px; display:flex; align-items:center; gap:18px;">
+      <div style="position:relative; width:68px; height:68px; flex-shrink:0;">
+        <svg width="68" height="68">
+          <circle cx="34" cy="34" r="${r}" stroke="#29292f" stroke-width="6" fill="none"/>
+          <circle cx="34" cy="34" r="${r}" stroke="#e8a94c" stroke-width="6" fill="none"
+            stroke-dasharray="${circ}" stroke-dashoffset="${offset}" stroke-linecap="round"
+            transform="rotate(-90 34 34)"/>
+        </svg>
+        <div style="position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:14px;">${pct}%</div>
+      </div>
+      <div style="flex:1;">
+        <div class="h2" style="font-size:16px; margin-bottom:8px;">Hoy</div>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <span class="pill" id="jumpTraining" style="cursor:pointer;">Entrenamiento ${trainDoneCount}/${trainTotal}</span>
+          <span class="pill" id="jumpEnglish" style="cursor:pointer;">Inglés ${engDoneCount}/${engTotal}</span>
+          ${state.inbox.length ? `<span class="pill" style="color:var(--gold);">Bandeja ${state.inbox.length}</span>` : ''}
+          ${todayEventsCount ? `<span class="pill" id="jumpCalendar" style="cursor:pointer;">Calendario ${todayEventsCount}</span>` : ''}
+        </div>
+      </div>
+    </div>
+  `;
 
   const inboxHtml = state.inbox.length ? `
     <div class="section-title">Bandeja rápida (${state.inbox.length})</div>
@@ -711,6 +803,7 @@ function renderInicio(view){
   ` : '';
 
   wrap.innerHTML = `
+    ${summaryHtml}
     ${inboxHtml}
     <div class="section-title">Objetivo</div>
     <div class="h1" id="goalText" style="cursor:pointer;">${escapeHtml(state.core.goal)}</div>
@@ -725,7 +818,7 @@ function renderInicio(view){
       <div class="progress-track"><div class="progress-fill" style="width:${skillState.progress}%"></div></div>
     </div>
 
-    <div class="today-card">
+    <div class="today-card" id="trainingSection">
       <div class="today-head">
         <div class="h2">Entrenamiento de hoy</div>
         <div class="faint">${state.training.activities.reduce((a,x)=>a+x.minutes,0)} min</div>
@@ -734,7 +827,7 @@ function renderInicio(view){
       ${allDone ? '<div class="all-done-banner">✓ Entrenamiento del día completado</div>' : ''}
     </div>
 
-    <div class="today-card" style="border-color:var(--border); background:linear-gradient(155deg, rgba(122,167,209,0.08), rgba(19,19,22,0.4));">
+    <div class="today-card" id="englishSection" style="border-color:var(--border); background:linear-gradient(155deg, rgba(122,167,209,0.08), rgba(19,19,22,0.4));">
       <div class="today-head">
         <div class="h2">Inglés de hoy 🇬🇧</div>
         <div class="faint">${ENGLISH_ROUTINE.reduce((a,x)=>a+x.m,0)} min · racha ${state.englishMeta.streak}</div>
@@ -773,6 +866,13 @@ function renderInicio(view){
       inboxCard.appendChild(row);
     });
   }
+
+  const jumpTraining = wrap.querySelector('#jumpTraining');
+  if(jumpTraining) jumpTraining.onclick = () => wrap.querySelector('#trainingSection').scrollIntoView({behavior:'smooth', block:'center'});
+  const jumpEnglish = wrap.querySelector('#jumpEnglish');
+  if(jumpEnglish) jumpEnglish.onclick = () => wrap.querySelector('#englishSection').scrollIntoView({behavior:'smooth', block:'center'});
+  const jumpCalendar = wrap.querySelector('#jumpCalendar');
+  if(jumpCalendar) jumpCalendar.onclick = () => { currentTab = 'calendario'; renderNav(); renderView(); };
 
   const goalEl = wrap.querySelector('#goalText');
   goalEl.onclick = () => openEditGoal();
@@ -1084,106 +1184,6 @@ function openNoteModal(note){
 }
 
 /* ==================================================================
-   PIZARRA
-   ================================================================== */
-let boardCtx, boardDrawing=false, boardColor='#e8a94c', boardLast=null, boardStrokes=[], boardCurrent=null;
-
-function renderPizarra(view){
-  const wrap = document.createElement('div');
-  wrap.innerHTML = `
-    <div class="cal-header">
-      <div class="h1">Pizarra</div>
-      <button class="btn ghost sm" id="clearBoardBtn">Borrar todo</button>
-    </div>
-    <div class="board-toolbar">
-      ${['#e8a94c','#f3f1ec','#6bb98a','#d16a6a','#7aa7d1'].map(c=>`<div class="color-dot" data-color="${c}" style="background:${c};"></div>`).join('')}
-      <button class="btn ghost sm" id="eraserBtn">Borrador</button>
-    </div>
-    <canvas id="boardCanvas"></canvas>
-    <div class="faint" style="margin-top:8px;">Se guarda automáticamente</div>
-  `;
-  view.appendChild(wrap);
-
-  const canvas = wrap.querySelector('#boardCanvas');
-  const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-  boardCtx = canvas.getContext('2d');
-  boardCtx.scale(dpr,dpr);
-  boardCtx.lineCap = 'round';
-  boardCtx.lineJoin = 'round';
-
-  redrawBoard(canvas);
-
-  wrap.querySelectorAll('.color-dot').forEach(d => {
-    d.onclick = () => { boardColor = d.dataset.color; wrap.querySelectorAll('.color-dot').forEach(x=>x.classList.remove('active')); d.classList.add('active'); };
-  });
-  wrap.querySelector('#eraserBtn').onclick = () => { boardColor = '__erase__'; };
-  wrap.querySelector('#clearBoardBtn').onclick = async () => {
-    boardStrokes = [];
-    redrawBoard(canvas);
-    await saveKey(STORAGE.board, boardStrokes);
-  };
-
-  const getPos = (ev) => {
-    const r = canvas.getBoundingClientRect();
-    const t = ev.touches ? ev.touches[0] : ev;
-    return { x: t.clientX - r.left, y: t.clientY - r.top };
-  };
-  const start = (ev) => {
-    ev.preventDefault();
-    boardDrawing = true;
-    const p = getPos(ev);
-    boardCurrent = { color: boardColor, points:[p] };
-  };
-  const move = (ev) => {
-    if(!boardDrawing) return;
-    ev.preventDefault();
-    const p = getPos(ev);
-    boardCurrent.points.push(p);
-    drawStroke(boardCurrent);
-  };
-  const end = async () => {
-    if(!boardDrawing) return;
-    boardDrawing = false;
-    if(boardCurrent && boardCurrent.points.length>1){
-      boardStrokes.push(boardCurrent);
-      await saveKey(STORAGE.board, boardStrokes);
-    }
-    boardCurrent = null;
-  };
-  canvas.addEventListener('mousedown', start);
-  canvas.addEventListener('mousemove', move);
-  window.addEventListener('mouseup', end);
-  canvas.addEventListener('touchstart', start, {passive:false});
-  canvas.addEventListener('touchmove', move, {passive:false});
-  canvas.addEventListener('touchend', end);
-}
-
-function drawStroke(stroke){
-  const pts = stroke.points;
-  if(pts.length<2) return;
-  boardCtx.strokeStyle = stroke.color==='__erase__' ? '#18181c' : stroke.color;
-  boardCtx.lineWidth = stroke.color==='__erase__' ? 22 : 3;
-  boardCtx.beginPath();
-  boardCtx.moveTo(pts[pts.length-2].x, pts[pts.length-2].y);
-  boardCtx.lineTo(pts[pts.length-1].x, pts[pts.length-1].y);
-  boardCtx.stroke();
-}
-function redrawBoard(canvas){
-  const rect = canvas.getBoundingClientRect();
-  boardCtx.clearRect(0,0,rect.width,rect.height);
-  boardStrokes.forEach(s => {
-    boardCtx.strokeStyle = s.color==='__erase__' ? '#18181c' : s.color;
-    boardCtx.lineWidth = s.color==='__erase__' ? 22 : 3;
-    boardCtx.beginPath();
-    s.points.forEach((p,i)=>{ if(i===0) boardCtx.moveTo(p.x,p.y); else boardCtx.lineTo(p.x,p.y); });
-    boardCtx.stroke();
-  });
-}
-
-/* ==================================================================
    FINANZAS
    ================================================================== */
 function renderFinanzas(view){
@@ -1200,23 +1200,26 @@ function renderFinanzas(view){
   const grid = document.createElement('div');
   grid.className = 'fin-grid';
   grid.innerHTML = `
-    <div class="fin-card income">
+    <div class="fin-card income" id="incomeCard" style="cursor:pointer;">
       <div class="label">Ingresos ${year}</div>
       <div class="amount">${fmtMoney(totalIncome)}</div>
+      <div class="faint" style="margin-top:10px;">${inYear(state.finance.incomes).length} registro(s) · toca para ver</div>
       <button class="btn ghost sm" style="margin-top:12px;" id="addIncomeBtn">+ Agregar ingreso</button>
     </div>
-    <div class="fin-card expense">
+    <div class="fin-card expense" id="expenseCard" style="cursor:pointer;">
       <div class="label">Egresos ${year}</div>
       <div class="amount">${fmtMoney(totalExpense)}</div>
+      <div class="faint" style="margin-top:10px;">${inYear(state.finance.expenses).length} registro(s) · toca para ver</div>
       <button class="btn ghost sm" style="margin-top:12px;" id="addExpenseBtn">+ Agregar egreso</button>
     </div>
     <div class="fin-card balance">
       <div class="label">Balance</div>
       <div class="amount">${fmtMoney(balance)}</div>
     </div>
-    <div class="fin-card">
+    <div class="fin-card" id="investCard" style="cursor:pointer;">
       <div class="label">Total invertido</div>
       <div class="amount" style="color:var(--gold);">${fmtMoney(totalInvested)}</div>
+      <div class="faint" style="margin-top:10px;">${state.finance.investments.length} registro(s) · toca para ver</div>
       <button class="btn ghost sm" style="margin-top:12px;" id="addInvestBtn">+ Agregar inversión</button>
     </div>
   `;
@@ -1233,9 +1236,9 @@ function renderFinanzas(view){
 
   const movList = listsWrap.querySelector('#movList');
   const all = [
-    ...state.finance.incomes.map(x=>({...x, kind:'Ingreso', sign:1})),
-    ...state.finance.expenses.map(x=>({...x, kind:'Egreso', sign:-1})),
-    ...state.finance.investments.map(x=>({...x, kind:'Inversión', sign:0})),
+    ...state.finance.incomes.map(x=>({...x, kind:'Ingreso', sign:1, bucket:'incomes'})),
+    ...state.finance.expenses.map(x=>({...x, kind:'Egreso', sign:-1, bucket:'expenses'})),
+    ...state.finance.investments.map(x=>({...x, kind:'Inversión', sign:0, bucket:'investments'})),
   ].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,15);
 
   if(all.length===0){
@@ -1244,6 +1247,7 @@ function renderFinanzas(view){
     all.forEach(m => {
       const row = document.createElement('div');
       row.className = 'fin-list-item';
+      row.style.cursor = 'pointer';
       const color = m.sign>0?'var(--success)':m.sign<0?'var(--danger)':'var(--gold)';
       row.innerHTML = `
         <div>
@@ -1255,7 +1259,9 @@ function renderFinanzas(view){
           <button class="icon-btn" data-id="${m.id}">✕</button>
         </div>
       `;
-      row.querySelector('.icon-btn').onclick = async () => {
+      row.onclick = () => openFinanceModal(m.bucket, 'Editar movimiento', m.bucket==='investments', m);
+      row.querySelector('.icon-btn').onclick = async (e) => {
+        e.stopPropagation();
         state.finance.incomes = state.finance.incomes.filter(x=>x.id!==m.id);
         state.finance.expenses = state.finance.expenses.filter(x=>x.id!==m.id);
         state.finance.investments = state.finance.investments.filter(x=>x.id!==m.id);
@@ -1266,24 +1272,124 @@ function renderFinanzas(view){
     });
   }
 
-  grid.querySelector('#addIncomeBtn').onclick = () => openFinanceModal('incomes','Nuevo ingreso');
-  grid.querySelector('#addExpenseBtn').onclick = () => openFinanceModal('expenses','Nuevo egreso');
-  grid.querySelector('#addInvestBtn').onclick = () => openFinanceModal('investments','Nueva inversión', true);
+  grid.querySelector('#addIncomeBtn').onclick = (e) => { e.stopPropagation(); openFinanceModal('incomes','Nuevo ingreso'); };
+  grid.querySelector('#addExpenseBtn').onclick = (e) => { e.stopPropagation(); openFinanceModal('expenses','Nuevo egreso'); };
+  grid.querySelector('#addInvestBtn').onclick = (e) => { e.stopPropagation(); openFinanceModal('investments','Nueva inversión', true); };
+
+  grid.querySelector('#incomeCard').onclick = () => renderFinanceDetail(view, 'incomes', 'Ingresos');
+  grid.querySelector('#expenseCard').onclick = () => renderFinanceDetail(view, 'expenses', 'Egresos');
+  grid.querySelector('#investCard').onclick = () => renderFinanceDetail(view, 'investments', 'Inversiones');
 }
 
-function openFinanceModal(bucket, title, isInvestment){
+function renderFinanceDetail(view, bucket, title){
+  const items = [...state.finance[bucket]].sort((a,b)=>b.date.localeCompare(a.date));
+  const total = items.reduce((a,x)=>a+Number(x.value),0);
+  const isInvestment = bucket === 'investments';
+
+  let interestHtml = '';
+  if(isInvestment){
+    const fixedItems = items.filter(x => x.fixedRate);
+    if(fixedItems.length){
+      const RATE = 0.108;
+      const principal = fixedItems.reduce((a,x)=>a+Number(x.value),0);
+      const interest = fixedItems.reduce((a,x)=>{
+        const days = Math.max(0, (Date.now() - new Date(x.date).getTime()) / 86400000);
+        return a + Number(x.value) * RATE * (days/365);
+      },0);
+      interestHtml = `
+        <div class="section-title" style="margin-top:4px;">Al 10.8% anual</div>
+        <div class="card" style="margin-bottom:20px; padding:16px;">
+          <div style="display:flex; gap:20px; flex-wrap:wrap;">
+            <div>
+              <div class="faint">Invertido</div>
+              <div style="font-weight:700; font-size:17px;">${fmtMoney(principal)}</div>
+            </div>
+            <div>
+              <div class="faint">Interés generado</div>
+              <div style="font-weight:700; font-size:17px; color:var(--success);">${fmtMoney(interest)}</div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+  }
+
+  view.innerHTML = '';
+  const wrap = document.createElement('div');
+  wrap.innerHTML = `
+    <button class="btn ghost sm" id="backBtn" style="margin-bottom:16px;">← Finanzas</button>
+    <div class="h1">${title}</div>
+    <div class="muted" style="margin:6px 0 4px;">Total</div>
+    <div class="h1" style="font-size:26px; margin-bottom:18px;">${fmtMoney(total)}</div>
+    <button class="btn sm" id="addBtn" style="margin-bottom:18px;">+ Agregar</button>
+    ${interestHtml}
+    <div class="section-title">${isInvestment ? 'Todas las inversiones' : 'Registros'}</div>
+    <div class="card" id="detailList"></div>
+  `;
+  view.appendChild(wrap);
+
+  wrap.querySelector('#backBtn').onclick = () => renderFinanzas(view);
+  wrap.querySelector('#addBtn').onclick = () => openFinanceModal(bucket, isInvestment ? 'Nueva inversión' : (bucket==='incomes'?'Nuevo ingreso':'Nuevo egreso'), isInvestment, null, () => renderFinanceDetail(view, bucket, title));
+
+  const list = wrap.querySelector('#detailList');
+  if(items.length===0){
+    list.innerHTML = `<div class="empty">Aún no hay registros aquí.</div>`;
+  }else{
+    items.forEach(m => {
+      const row = document.createElement('div');
+      row.className = 'fin-list-item';
+      row.style.cursor = 'pointer';
+      row.innerHTML = `
+        <div>
+          <div style="font-weight:600;">${escapeHtml(m.name)} ${m.fixedRate ? '<span class="pill" style="margin-left:6px;">10.8%</span>' : ''}</div>
+          <div class="faint">${m.date}</div>
+        </div>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <div style="font-weight:600;">${fmtMoney(m.value)}</div>
+          <button class="icon-btn" data-id="${m.id}">✕</button>
+        </div>
+      `;
+      row.onclick = () => openFinanceModal(bucket, 'Editar', isInvestment, m, () => renderFinanceDetail(view, bucket, title));
+      row.querySelector('.icon-btn').onclick = async (e) => {
+        e.stopPropagation();
+        state.finance[bucket] = state.finance[bucket].filter(x=>x.id!==m.id);
+        await saveKey(STORAGE.finance, state.finance);
+        renderFinanceDetail(view, bucket, title);
+      };
+      list.appendChild(row);
+    });
+  }
+}
+
+function openFinanceModal(bucket, title, isInvestment, existing, onDone){
+  const fields = [
+    {key:'name', label:'Nombre / descripción', type:'text', value: existing?.name || ''},
+    {key:'value', label: isInvestment ? 'Valor actual' : 'Valor', type:'number', value: existing?.value ?? ''},
+    {key:'date', label:'Fecha', type:'date', value: existing?.date || todayStr()},
+  ];
+  if(isInvestment){
+    fields.push({key:'fixedRate', label:'Inversión a interés (10.8% anual)', type:'checkbox', value: existing?.fixedRate || false});
+  }
   showModal({
     title,
-    fields:[
-      {key:'name', label:'Nombre / descripción', type:'text'},
-      {key:'value', label: isInvestment ? 'Valor actual' : 'Valor', type:'number'},
-      {key:'date', label:'Fecha', type:'date', value: todayStr()},
-    ],
+    fields,
+    extraActions: existing ? [{label:'Eliminar', danger:true, onClick: async () => {
+      state.finance[bucket] = state.finance[bucket].filter(x=>x.id!==existing.id);
+      await saveKey(STORAGE.finance, state.finance);
+      if(onDone) onDone(); else renderView();
+    }}] : [],
     onSave: async (vals) => {
       if(!vals.name || !vals.value) return;
-      state.finance[bucket].push({id:uid(), name:vals.name, value:Number(vals.value), date:vals.date});
+      if(existing){
+        existing.name = vals.name; existing.value = Number(vals.value); existing.date = vals.date;
+        if(isInvestment) existing.fixedRate = !!vals.fixedRate;
+      }else{
+        const item = {id:uid(), name:vals.name, value:Number(vals.value), date:vals.date};
+        if(isInvestment) item.fixedRate = !!vals.fixedRate;
+        state.finance[bucket].push(item);
+      }
       await saveKey(STORAGE.finance, state.finance);
-      renderView();
+      if(onDone) onDone(); else renderView();
     }
   });
 }
@@ -1301,6 +1407,15 @@ function showModal({title, fields, onSave, extraActions}){
   fields.forEach(f => {
     const el = document.createElement('div');
     el.className = 'field';
+    if(f.type === 'checkbox'){
+      el.innerHTML = `<label style="display:flex; align-items:center; gap:10px; cursor:pointer; text-transform:none; font-size:14px; color:var(--text);">
+        <input type="checkbox" data-key="${f.key}" style="width:18px; height:18px; accent-color:var(--gold);">
+        ${f.label}
+      </label>`;
+      fieldsWrap.appendChild(el);
+      el.querySelector(`[data-key="${f.key}"]`).checked = !!f.value;
+      return;
+    }
     const inputTag = f.type === 'textarea' ? 'textarea' : 'input';
     const typeAttr = f.type==='textarea' ? '' : `type="${f.type||'text'}"`;
     el.innerHTML = `<label>${f.label}</label><${inputTag} ${typeAttr} data-key="${f.key}">${f.type==='textarea'?(f.value||''):''}</${inputTag}>`;
@@ -1329,7 +1444,10 @@ function showModal({title, fields, onSave, extraActions}){
   saveBtn.textContent = 'Guardar';
   saveBtn.onclick = () => {
     const vals = {};
-    fields.forEach(f => { vals[f.key] = fieldsWrap.querySelector(`[data-key="${f.key}"]`).value; });
+    fields.forEach(f => {
+      const el = fieldsWrap.querySelector(`[data-key="${f.key}"]`);
+      vals[f.key] = f.type==='checkbox' ? el.checked : el.value;
+    });
     onSave(vals);
     close();
   };
@@ -1351,10 +1469,19 @@ function escapeHtml(str){
 /* ==================================================================
    QUOTE SCREEN + BOOT
    ================================================================== */
+function pickRandomQuoteIndex(){
+  if(QUOTES.length <= 1) return 0;
+  let idx;
+  do{ idx = Math.floor(Math.random() * QUOTES.length); }
+  while(idx === state.core.lastQuoteIndex);
+  return idx;
+}
+
 function maybeShowQuote(){
   const t = todayStr();
   if(state.core.lastQuoteDate === t){ boot(); return; }
-  const q = QUOTES[dayOfYear() % QUOTES.length];
+  const idx = pickRandomQuoteIndex();
+  const q = QUOTES[idx];
   document.getElementById('quoteText').textContent = '“' + q.t + '”';
   document.getElementById('quoteAuthor').textContent = '— ' + q.a;
   const screen = document.getElementById('quoteScreen');
@@ -1362,6 +1489,7 @@ function maybeShowQuote(){
   screen.onclick = async () => {
     screen.style.display = 'none';
     state.core.lastQuoteDate = t;
+    state.core.lastQuoteIndex = idx;
     await saveKey(STORAGE.core, state.core);
     boot();
   };
@@ -1374,7 +1502,7 @@ function boot(){
 }
 
 async function init(){
-  const [core, skills, training, english, englishMeta, notes, calendar, finance, board, inbox] = await Promise.all([
+  const [core, skills, training, english, englishMeta, notes, calendar, finance, inbox] = await Promise.all([
     loadKey(STORAGE.core, state.core),
     loadKey(STORAGE.skills, {}),
     loadKey(STORAGE.training, null),
@@ -1383,7 +1511,6 @@ async function init(){
     loadKey(STORAGE.notes, []),
     loadKey(STORAGE.calendar, []),
     loadKey(STORAGE.finance, state.finance),
-    loadKey(STORAGE.board, []),
     loadKey(STORAGE.inbox, []),
   ]);
   state.core = {...state.core, ...core};
@@ -1394,7 +1521,6 @@ async function init(){
   state.notes = notes || [];
   state.calendar = calendar || [];
   state.finance = finance || state.finance;
-  boardStrokes = board || [];
   state.inbox = inbox || [];
 
   initSkillsIfNeeded();
@@ -1403,11 +1529,77 @@ async function init(){
   await saveKey(STORAGE.skills, state.skills);
 
   document.getElementById('fabCapture').onclick = openQuickCapture;
+  document.getElementById('logoutBtn').onclick = async () => {
+    await sb.auth.signOut();
+    location.reload();
+  };
 
   maybeShowQuote();
 }
 
-init();
+/* ---------------- pantalla de login ---------------- */
+let authMode = 'login';
+
+function wireAuthScreen(){
+  const emailEl = document.getElementById('authEmail');
+  const passEl = document.getElementById('authPassword');
+  const errEl = document.getElementById('authError');
+  const submitBtn = document.getElementById('authSubmit');
+  const toggle = document.getElementById('authToggle');
+
+  toggle.onclick = (e) => {
+    e.preventDefault();
+    authMode = authMode === 'login' ? 'signup' : 'login';
+    document.getElementById('authTitle').textContent = authMode === 'login' ? 'Iniciar sesión' : 'Crear cuenta';
+    document.getElementById('authToggleText').textContent = authMode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?';
+    toggle.textContent = authMode === 'login' ? 'Crear cuenta' : 'Iniciar sesión';
+    errEl.textContent = '';
+  };
+
+  submitBtn.onclick = async () => {
+    errEl.textContent = '';
+    const email = emailEl.value.trim();
+    const password = passEl.value;
+    if(!email || !password){ errEl.textContent = 'Completa correo y contraseña.'; return; }
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Espera...';
+    try{
+      let res;
+      if(authMode === 'login'){
+        res = await sb.auth.signInWithPassword({ email, password });
+      }else{
+        res = await sb.auth.signUp({ email, password });
+      }
+      if(res.error){ errEl.textContent = res.error.message; return; }
+      if(authMode === 'signup' && !res.data.session){
+        errEl.textContent = 'Cuenta creada. Revisa tu correo para confirmar, luego inicia sesión.';
+        authMode = 'login';
+        document.getElementById('authTitle').textContent = 'Iniciar sesión';
+        return;
+      }
+      currentUser = res.data.user;
+      document.getElementById('authScreen').style.display = 'none';
+      init();
+    }catch(e){
+      errEl.textContent = 'Error de conexión. Intenta de nuevo.';
+    }finally{
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Entrar';
+    }
+  };
+}
+
+async function boot_check_session(){
+  wireAuthScreen();
+  const { data } = await sb.auth.getSession();
+  if(data.session){
+    currentUser = data.session.user;
+    document.getElementById('authScreen').style.display = 'none';
+    init();
+  }
+}
+
+boot_check_session();
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
